@@ -9,7 +9,7 @@ namespace SubscriptionSystem.Services
     public class StripeService : IStripeService
     {
         private readonly IConfiguration _configuration;
-        private readonly string StripeSecretKey;
+        private readonly string _stripeSecretKey;
         private readonly Stripe.ProductService _productService;
         private readonly ILogger _logger;
         private readonly SubscriptionService _subscriptionService;
@@ -19,14 +19,11 @@ namespace SubscriptionSystem.Services
             _productService = productService;
             _logger = logger;
             _subscriptionService = subscriptionService;
-
-            try
+            _stripeSecretKey = _configuration["Stripe:SecretKey"];
+            if (string.IsNullOrEmpty(_stripeSecretKey))
             {
-                StripeSecretKey = _configuration.GetSection("Stripe:SecretKey").Value;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex.ToString());
+                _logger.LogCritical("Stripe secret key is not configured.");
+                throw new InvalidOperationException("Stripe secret key is not configured.");
             }
 
         }
@@ -50,7 +47,7 @@ namespace SubscriptionSystem.Services
         {
             try
             {
-                StripeConfiguration.ApiKey = StripeSecretKey;
+                StripeConfiguration.ApiKey = _stripeSecretKey;
                 var options = new Stripe.ProductListOptions { Expand = new List<string>() { "data.default_price" } };
 
                 var products = await _productService.ListAsync(options);
@@ -98,7 +95,7 @@ namespace SubscriptionSystem.Services
         {
             try
             {
-                StripeConfiguration.ApiKey = StripeSecretKey;
+                StripeConfiguration.ApiKey = _stripeSecretKey;
                 // fetch from database if customer exist then return their customerId
                 if (false) { }
                 else
@@ -180,7 +177,7 @@ namespace SubscriptionSystem.Services
             try
             {
                 string host = _configuration["Host"];
-                StripeConfiguration.ApiKey = StripeSecretKey;
+                StripeConfiguration.ApiKey = _stripeSecretKey;
                 var priceService = new PriceService();
                 var price = await priceService.GetAsync(paymentRequest.PriceId);
                 string productId = price.ProductId;
@@ -300,7 +297,7 @@ namespace SubscriptionSystem.Services
             try
             {
                 string host = _configuration["Host"];
-                StripeConfiguration.ApiKey = StripeSecretKey;
+                StripeConfiguration.ApiKey = _stripeSecretKey;
                 var options = new Stripe.BillingPortal.SessionCreateOptions
                 {
                     Customer = customerId,
@@ -370,7 +367,7 @@ namespace SubscriptionSystem.Services
         {
             try
             {
-                StripeConfiguration.ApiKey = StripeSecretKey;
+                StripeConfiguration.ApiKey = _stripeSecretKey;
                 var options = new SubscriptionListOptions
                 {
                     Customer = customerId,
@@ -425,7 +422,7 @@ namespace SubscriptionSystem.Services
         {
             try
             {
-                StripeConfiguration.ApiKey = StripeSecretKey;
+                StripeConfiguration.ApiKey = _stripeSecretKey;
                 string host = _configuration["Host"];
 
                 var option = new SessionCreateOptions
